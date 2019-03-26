@@ -1,0 +1,77 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+
+    <style>
+
+        @keyframes arkounay-debug-fadeout {
+            0% {opacity: 0; right: 40px;}
+            20% {opacity: 1; right: 20px;}
+            80% {opacity: 1; right: 20px;}
+            100% {opacity: 0; right: 0;}
+        }
+
+        .arkounay-debug-toast {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background-color: rgba(50, 50, 50, 0.8);
+            padding: 10px;
+            color: white;
+            font-size: 12px;
+            animation-name: arkounay-debug-fadeout;
+            animation-duration: 2s;
+            border-radius: 4px;
+        }
+    </style>
+
+    <script>
+        function copyToClipboard(copy) {
+            var el = document.createElement('textarea');
+            el.value = copy;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            var toast = document.createElement('div');
+            toast.innerHTML = "Copied <strong>" + copy + "</strong> to clipboard.";
+            toast.className = "arkounay-debug-toast";
+            document.body.appendChild(toast);
+            setTimeout(function () {
+                document.body.removeChild(toast);
+            }, 2000);
+
+            return false;
+        }
+    </script>
+
+    {% if collector.templatePaths is not empty %}
+        {% set template = collector.templatePaths|keys|first|default %}
+
+        {% set icon %}
+            {{ include('@ArkounayTwigCopyLocation/data_collector/copy-content.svg') }}
+            {#{{ include('@WebProfiler/Icon/twig.svg') }}#}
+            <span class="sf-toolbar-label">{{ template|split('/')|last }}</span>
+        {% endset %}
+
+        {% set text %}
+            {% for template, v in collector.templatePaths|reverse %}
+                <div class="sf-toolbar-info-piece">
+                    <a onclick="copyToClipboard('{{ template }}');" href="#" title="Copy {{ template }} to clipboard. ({{ v }})">{{ template }}</a>
+                </div>
+            {% endfor %}
+        {% endset %}
+
+    {% endif %}
+
+    <div class="sf-toolbar-block sf-toolbar-block-{{ name }} sf-toolbar-status-{{ status|default('normal') }} {{ additional_classes|default('') }}" {{ block_attrs|default('')|raw }}>
+        {% if link is not defined or link %}<a href="#" onclick="copyToClipboard('{{ template }}');" title="Copy {{ template }} to clipboard.">{% endif %}
+            <div class="sf-toolbar-icon">{{ icon|default('') }}</div>
+            {% if link|default(false) %}</a>{% endif %}
+        <div class="sf-toolbar-info">{{ text|default('') }}</div>
+    </div>
+
+
+{% endblock %}
+

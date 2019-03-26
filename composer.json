@@ -1,0 +1,30 @@
+{
+    "name": "arkounay/twig-copy-location-bundle",
+    "license": "MIT",
+    "type": "symfony-bundle",
+    "description": "Adds copiable twig filename in the debug toolbar",
+    "keywords": [
+        "symfony",
+        "bundle",
+        "twig",
+        "debug",
+        "copy"
+    ],
+    "homepage": "https://github.com/arkounay/twig-copy-location-bundle",
+    "authors": [
+        {
+            "name": "Antonin M",
+            "email": "arkanen@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2.0",
+        "symfony/debug-pack": "*",
+        "symfony/twig-bundle": "^4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Arkounay\\Bundle\\TwigCopyLocationBundle\\": ""
+        }
+    }
+}

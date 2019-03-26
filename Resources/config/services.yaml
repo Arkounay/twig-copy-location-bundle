@@ -1,0 +1,15 @@
+services:
+
+    Arkounay\Bundle\TwigCopyLocationBundle\DataCollector\TwigCollector:
+        tags:
+            -
+                name:     data_collector
+                template:  '@ArkounayTwigCopyLocation/data_collector/twig_template.html.twig'
+                # must match the value returned by the getName() method
+                id:       'app.twig_collector'
+                # optional priority
+                # priority: 300
+        public: false
+        arguments:
+            - '@twig.profile'
+            - '@twig'
