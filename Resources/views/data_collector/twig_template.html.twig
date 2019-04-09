@@ -60,13 +60,13 @@
         {% set text %}
             {% for template, v in collector.templatePaths|reverse %}
                 <div class="sf-toolbar-info-piece">
-                    <a onclick="copyToClipboard('{{ v }}');" href="#" title="Copy {{ v }} to clipboard. ({{ v }})">{{ template }}</a>
+                    <a onclick="return copyToClipboard('{{ v }}');" href="#" title="Copy {{ v }} to clipboard. ({{ v }})">{{ template }}</a>
                 </div>
             {% endfor %}
         {% endset %}
 
         <div class="sf-toolbar-block sf-toolbar-block-{{ name }} sf-toolbar-status-{{ status|default('normal') }} {{ additional_classes|default('') }}" {{ block_attrs|default('')|raw }}>
-            {% if link is not defined or link %}<a href="#" onclick="copyToClipboard('{{ template_path }}');" title="Copy {{ template_path }} to clipboard.">{% endif %}
+            {% if link is not defined or link %}<a href="#" onclick="return copyToClipboard('{{ template_path }}');" title="Copy {{ template_path }} to clipboard.">{% endif %}
                 <div class="sf-toolbar-icon">{{ icon|default('') }}</div>
                 {% if link|default(false) %}</a>{% endif %}
             <div class="sf-toolbar-info">{{ text|default('') }}</div>
