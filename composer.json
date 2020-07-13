@@ -20,7 +20,7 @@
     "require": {
         "php": ">=7.2.0",
         "symfony/debug-pack": "*",
-        "symfony/twig-bundle": "^4"
+        "twig/twig": "^2.12|^3.0"
     },
     "autoload": {
         "psr-4": {

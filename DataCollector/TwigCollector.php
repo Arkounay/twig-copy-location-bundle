@@ -2,7 +2,6 @@
 
 namespace Arkounay\Bundle\TwigCopyLocationBundle\DataCollector;
 
-use Symfony\Bridge\Twig\DataCollector\TwigDataCollector;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
