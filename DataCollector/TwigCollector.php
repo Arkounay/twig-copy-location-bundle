@@ -189,7 +189,7 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getName(): string
     {
         return 'app.twig_collector';
     }
