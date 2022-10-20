@@ -5,10 +5,8 @@ services:
             -
                 name:     data_collector
                 template:  '@ArkounayTwigCopyLocation/data_collector/twig_template.html.twig'
-                # must match the value returned by the getName() method
                 id:       'app.twig_collector'
-                # optional priority
-                # priority: 300
+            - { name: kernel.event_listener, event: kernel.controller }
         public: false
         arguments:
             - '@twig.profile'

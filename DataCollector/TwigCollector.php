@@ -2,14 +2,16 @@
 
 namespace Arkounay\Bundle\TwigCopyLocationBundle\DataCollector;
 
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use Symfony\Component\HttpKernel\DataCollector\LateDataCollectorInterface;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\VarDumper\Cloner\Data;
 use Twig\Environment;
 use Twig\Error\LoaderError;
-use Twig\Markup;
-use Twig\Profiler\Dumper\HtmlDumper;
 use Twig\Profiler\Profile;
 
 /**
@@ -17,16 +19,20 @@ use Twig\Profiler\Profile;
  * @package Arkounay\Bundle\TwigCopyLocationBundle\DataCollector
  * Can't extend TwigDataCollector anymore since it's marked as final
  */
-class TwigCollector extends DataCollector implements LateDataCollectorInterface
+class TwigCollector extends DataCollector implements EventSubscriberInterface, LateDataCollectorInterface
 {
-    private $profile;
-    private $twig;
-    private $computed;
 
-    public function __construct(Profile $profile, Environment $twig = null)
+    private \SplObjectStorage $controllers;
+
+    public function __construct(private readonly Profile $profile, private readonly Environment $twig)
     {
-        $this->profile = $profile;
-        $this->twig = $twig;
+        $this->controllers = new \SplObjectStorage();
+    }
+
+
+    public static function getSubscribedEvents(): array
+    {
+        return [KernelEvents::CONTROLLER => 'onKernelController'];
     }
 
     /**
@@ -36,6 +42,7 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function collect(Request $request, Response $response, \Throwable $exception = null)
     {
+        $this->data['controller'] = $this->parseController($this->controllers[$request]);
     }
 
     /**
@@ -44,8 +51,12 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
     public function reset()
     {
         $this->profile->reset();
-        $this->computed = null;
         $this->data = [];
+    }
+
+    public function onKernelController(ControllerEvent $event): void
+    {
+        $this->controllers[$event->getRequest()] = $event->getController();
     }
 
     /**
@@ -68,7 +79,7 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
                     $template = null;
                 }
 
-                if (null !== $template && '' !== $path = $template->getSourceContext()->getPath()) {
+                if (null !== $template && '' !== ($path = $template->getSourceContext()->getPath()) && !str_contains($name, '@WebProfiler')) {
                     $this->data['template_paths'][$name] = $path;
                 }
             }
@@ -80,110 +91,84 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
         $templateFinder($this->profile);
     }
 
-    public function getTime()
+    public function getController(): array|string|Data
     {
-        return $this->getProfile()->getDuration() * 1000;
+        return $this->data['controller'];
     }
 
-    public function getTemplateCount()
-    {
-        return $this->getComputedData('template_count');
-    }
-
-    public function getTemplatePaths()
+    public function getTemplatePaths(): array
     {
         return $this->data['template_paths'];
     }
 
-    public function getTemplates()
+    /**
+     * @return array|string An array of controller data or a simple string
+     */
+    private function parseController(array|object|string|null $controller): array|string
     {
-        return $this->getComputedData('templates');
-    }
-
-    public function getBlockCount()
-    {
-        return $this->getComputedData('block_count');
-    }
-
-    public function getMacroCount()
-    {
-        return $this->getComputedData('macro_count');
-    }
-
-    public function getHtmlCallGraph()
-    {
-        $dumper = new HtmlDumper();
-        $dump = $dumper->dump($this->getProfile());
-
-        // needed to remove the hardcoded CSS styles
-        $dump = str_replace([
-            '<span style="background-color: #ffd">',
-            '<span style="color: #d44">',
-            '<span style="background-color: #dfd">',
-            '<span style="background-color: #ddf">',
-        ], [
-            '<span class="status-warning">',
-            '<span class="status-error">',
-            '<span class="status-success">',
-            '<span class="status-info">',
-        ], $dump);
-
-        return new Markup($dump, 'UTF-8');
-    }
-
-    public function getProfile()
-    {
-        if (null === $this->profile) {
-            $this->profile = unserialize($this->data['profile'], ['allowed_classes' => ['Twig_Profiler_Profile', 'Twig\Profiler\Profile']]);
+        if (\is_string($controller) && str_contains($controller, '::')) {
+            $controller = explode('::', $controller);
         }
 
-        return $this->profile;
-    }
+        if (\is_array($controller)) {
+            try {
+                $r = new \ReflectionMethod($controller[0], $controller[1]);
 
-    private function getComputedData(string $index)
-    {
-        if (null === $this->computed) {
-            $this->computed = $this->computeData($this->getProfile());
-        }
-
-        return $this->computed[$index];
-    }
-
-    private function computeData(Profile $profile)
-    {
-        $data = [
-            'template_count' => 0,
-            'block_count' => 0,
-            'macro_count' => 0,
-        ];
-
-        $templates = [];
-        foreach ($profile as $p) {
-            $d = $this->computeData($p);
-
-            $data['template_count'] += ($p->isTemplate() ? 1 : 0) + $d['template_count'];
-            $data['block_count'] += ($p->isBlock() ? 1 : 0) + $d['block_count'];
-            $data['macro_count'] += ($p->isMacro() ? 1 : 0) + $d['macro_count'];
-
-            if ($p->isTemplate()) {
-                if (!isset($templates[$p->getTemplate()])) {
-                    $templates[$p->getTemplate()] = 1;
-                } else {
-                    ++$templates[$p->getTemplate()];
-                }
-            }
-
-            foreach ($d['templates'] as $template => $count) {
-                if (!isset($templates[$template])) {
-                    $templates[$template] = $count;
-                } else {
-                    $templates[$template] += $count;
+                return [
+                    'class' => \is_object($controller[0]) ? get_debug_type($controller[0]) : $controller[0],
+                    'method' => $controller[1],
+                    'file' => $r->getFileName(),
+                    'line' => $r->getStartLine(),
+                ];
+            } catch (\ReflectionException) {
+                if (\is_callable($controller)) {
+                    // using __call or  __callStatic
+                    return [
+                        'class' => \is_object($controller[0]) ? get_debug_type($controller[0]) : $controller[0],
+                        'method' => $controller[1],
+                        'file' => 'n/a',
+                        'line' => 'n/a',
+                    ];
                 }
             }
         }
-        $data['templates'] = $templates;
 
-        return $data;
+        if ($controller instanceof \Closure) {
+            $r = new \ReflectionFunction($controller);
+
+            $controller = [
+                'class' => $r->getName(),
+                'method' => null,
+                'file' => $r->getFileName(),
+                'line' => $r->getStartLine(),
+            ];
+
+            if (str_contains($r->name, '{closure}')) {
+                return $controller;
+            }
+            $controller['method'] = $r->name;
+
+            if ($class = $r->getClosureScopeClass()) {
+                $controller['class'] = $class->name;
+            } else {
+                return $r->name;
+            }
+
+            return $controller;
+        }
+
+        if (\is_object($controller)) {
+            $r = new \ReflectionClass($controller);
+
+            return [
+                'class' => $r->getName(),
+                'method' => null,
+                'file' => $r->getFileName(),
+                'line' => $r->getStartLine(),
+            ];
+        }
+
+        return \is_string($controller) ? $controller : 'n/a';
     }
 
     /**
@@ -193,5 +178,5 @@ class TwigCollector extends DataCollector implements LateDataCollectorInterface
     {
         return 'app.twig_collector';
     }
-    
+
 }

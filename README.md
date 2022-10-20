@@ -1,8 +1,8 @@
 # Twig Copy Location Bundle
 
-This just adds the current twig filename in the debug bar, and allows you to copy its path easily instead of clicking the default twig block, and then copying the file.
+This just adds the current twig filename in the debug bar, and allows you to copy its path. Also adds the current controller name and path.
 
-Useful when you need to change something and just needs to copy the file's path to find it quickly in your IDE.
+Useful when you need to navigate quickly and want to quickly go to the current controller or the current twig, just to copy the file's path in your IDE, search by file, paste, and you're done.
 
 ![demo-image](https://github.com/arkounay/twig-copy-location-bundle/blob/master/demo.png)
 

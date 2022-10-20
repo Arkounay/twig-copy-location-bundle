@@ -1,6 +1,10 @@
 {% extends '@WebProfiler/Profiler/layout.html.twig' %}
 
 {% block toolbar %}
+    {% import _self as helper %}
+    {% set request_handler %}
+        {{ helper.set_handler(collector.controller) }}
+    {% endset %}
 
     {% if collector.templatePaths is not empty %}
         <style>
@@ -58,6 +62,11 @@
         {% endset %}
 
         {% set text %}
+            <div class="sf-toolbar-info-group">
+                <span class="sf-toolbar-info-piece">
+                    {{ request_handler }}
+                </span>
+            </div>
             {% for template, v in collector.templatePaths|reverse %}
                 <div class="sf-toolbar-info-piece">
                     <a onclick="return copyToClipboard('{{ v }}');" href="#" title="Copy {{ v }} to clipboard. ({{ v }})">{{ template }}</a>
@@ -66,11 +75,27 @@
         {% endset %}
 
         <div class="sf-toolbar-block sf-toolbar-block-{{ name }} sf-toolbar-status-{{ status|default('normal') }} {{ additional_classes|default('') }}" {{ block_attrs|default('')|raw }}>
-            {% if link is not defined or link %}<a href="#" onclick="return copyToClipboard('{{ template_path }}');" title="Copy {{ template_path }} to clipboard.">{% endif %}
-                <div class="sf-toolbar-icon">{{ icon|default('') }}</div>
-                {% if link|default(false) %}</a>{% endif %}
-            <div class="sf-toolbar-info">{{ text|default('') }}</div>
+                <a href="#" onclick="return copyToClipboard('{{ template_path }}');" title="Copy {{ template_path }} to clipboard.">
+                    <div class="sf-toolbar-icon">{{ icon|default('') }}</div>
+                </a>
+                <div class="sf-toolbar-info">
+                    {{ text|default('') }}
+                </div>
         </div>
     {% endif %}
 
 {% endblock %}
+
+{% macro set_handler(controller) %}
+    {% if controller.class is defined -%}
+        {%- set link = controller.file ~ ':' ~ controller.line %}
+        {%- if link %}<a href="#" onclick="return copyToClipboard('{{ link }}');" title="{{ controller.class }}">{% else %}<span title="{{ controller.class }}">{% endif %}
+
+        {{- controller.class|abbr_class|striptags -}}
+        {{- controller.method ? ' :: ' ~ controller.method -}}
+
+        {%- if link %}</a>{% else %}</span>{% endif %}
+    {%- else -%}
+        <span>{{ route|default(controller) }}</span>
+    {%- endif %}
+{% endmacro %}
