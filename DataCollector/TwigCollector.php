@@ -42,7 +42,7 @@ class TwigCollector extends DataCollector implements EventSubscriberInterface, L
      */
     public function collect(Request $request, Response $response, \Throwable $exception = null)
     {
-        $this->data['controller'] = $this->parseController($this->controllers[$request]);
+        $this->data['controller'] = $this->parseController($this->controllers[$request] ?? null);
     }
 
     /**
